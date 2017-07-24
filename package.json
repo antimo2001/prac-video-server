@@ -1,0 +1,19 @@
+{
+  "name": "prac-video-server",
+  "version": "0.0.1",
+  "description": "practice videos",
+  "main": "server.js",
+  "dependencies": {
+    "debug": "@2.6.8",
+    "serve-static": "@1.12.3",
+    "video-server": "@0.2.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start-video-server": "./node_modules/.bin/video-server",
+    "start": "node server.js",
+    "test": "set DEBUG=prac-video-server:* && node server.js"
+  },
+  "author": "",
+  "license": "ISC"
+}
