@@ -23,4 +23,4 @@ server.use(serveStatic('public', {'index': ['index-generated.html']}));
 /**
  * Finally, start the video server
  */
-server.listen(config.port, () => debug(`Listening on port ${config.port}`));
+server.listen(config.port, () => console.log(`Listening on port ${config.port}`));

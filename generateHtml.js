@@ -3,54 +3,70 @@ const fs = require('fs');
 const path = require('path');
 const config = require('./server.config');
 
-const FOLDERS = ['1', '2', '3', '4', '5', '6', '7'];
-
 /**
  * Generate the static index.html with filenames from the storage dir
  */
 module.exports = () => {
-  const movieFolders = fs.readdirSync(config.storageDir).filter(folder => {
-    //Filter by the specified folders
-    let isincludedFolder = (FOLDERS.indexOf(folder.toString()) >= 0);
-    debug('(folder,isincludedFolder)===', folder, isincludedFolder);
-    return isincludedFolder;
-  }).map(folder => {
-    //Filter each folder by only the specified file extensions
-    let path2folder = path.join(config.storageDir, folder);
-    let files = fs.readdirSync(path2folder).filter(file => {
-      let isincluded = config.rxFileFilter.test(file);
-      // debug('(file/isincluded)===(%s/%s)', file, isincluded);
-      return isincluded;
+
+  /**
+   * this reads from config.storageDir and creates array of mappedFolders for
+   * easier processing in the writeHtml function
+   */
+  const getFoldersSync = () => {
+    return fs.readdirSync(config.storageDir).filter(folder => {
+      //Filter by the specified folders
+      let isincludedFolder = config.rxFolders.test(folder);
+      debug('(folder,isincludedFolder)===', folder, isincludedFolder);
+      return isincludedFolder;
+    }).map(folder => {
+      //Filter each folder by only the specified file extensions
+      let path2folder = path.join(config.storageDir, folder);
+      let files = fs.readdirSync(path2folder).filter(file => {
+        let isincluded = config.rxFileFilter.test(file);
+        return isincluded;
+      });
+      //Create object containing the folderName and its specific video files
+      let mappedFolder = { folder, files };
+      debug('mappedFolder===%j', mappedFolder);
+      return mappedFolder;
     });
-    //Create object containing the folderName and its specific video files
-    let mappedFolders = { folder, files };
-    debug('mappedFolders===%j', mappedFolders);
-    return mappedFolders;
-  }).map(item => {
-    //Create html elements for each video file
-    let files = item.files.map(file => {
-      return `<li><a href="view/${item.folder}/${file}">${file}</li>`;
+  };
+
+  /**
+   * this writes the HTML content for each folder of video files
+   */
+  const writeHtmlSync = () => {
+    const movieFolders = getFoldersSync().map(item => {
+      //Create html elements for each video file
+      let files = item.files.map(file => {
+        return `<li><a href="view/${item.folder}/${file}">${file}</a></li>`;
+      });
+      //Create html for each section that contains video files
+      return `
+        <div id=${item.folder}>
+          <h2>${item.folder}</h2>
+          <ol>
+            ${files.join('\n        ')}
+          </ol>
+        </div>
+      `;
     });
-    //Create each section contains video files html
-    return `
-    <div id=${item.folder}>
-      <h2>${item.folder}</h2>
-      <ol>
-        ${files.join('\n        ')}
-      </ol>
-    </div>
-    `;
-  });
+
+    const htmlcontent = (`<html>
+      <body>
+        <main>
+          ${movieFolders.join('\n      ')}
+        </main>
+      </body>
+      </html>`
+    );
+    fs.writeFileSync('public/index-generated.html', htmlcontent, 'utf8');
+    debug(`${htmlcontent}`);
+  };
   
-  const htmlcontent = (`<html>
-    <body>
-      <main>
-        ${movieFolders.join('\n      ')}
-      </main>
-    </body>
-  </html>`
-  );
-  fs.writeFileSync('public/index-generated.html', htmlcontent, 'utf8');
-  debug(`${htmlcontent}`);
-  debug('Done generating index-generated.html');
+  //----------------------------MAIN----------------------------
+  {
+    writeHtmlSync();
+    debug('Done generating index-generated.html');
+  }
 }
