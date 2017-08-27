@@ -1,3 +1,4 @@
 node_modules
 .secret
 *generated.html
+npm-debug.log

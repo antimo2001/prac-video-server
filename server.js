@@ -10,12 +10,15 @@ const generateHtml = require('./generateHtml');
  */
 server.set('PORT', config.port);
 server.set('STORAGE_DIR', config.storageDir);
+debug(`PORT set to ${config.port}`);
+debug(`STORAGE_DIR set to ${config.storageDir}`);
 
 /**
  * Setup the static-server
  */
 generateHtml();
 server.use(serveStatic('public', {'index': ['index-generated.html']}));
+// server.use(serveStatic(config.storageDir));
 
 /**
  * Finally, start the video server
