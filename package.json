@@ -10,7 +10,7 @@
   },
   "devDependencies": {},
   "scripts": {
-    "clean": "del public\\index-generated.html",
+    "clean": "del public\\*generated.html",
     "start-video-server": "./node_modules/.bin/video-server",
     "start": "node server.js",
     "test": "set DEBUG=prac-video-server:* && node server.js"

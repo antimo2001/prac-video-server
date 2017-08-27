@@ -42,14 +42,14 @@ module.exports = () => {
         return `<li><a href="view/${item.folder}/${file}">${file}</a></li>`;
       });
       //Create html for each section that contains video files
-      return `
+      return (`
         <div id=${item.folder}>
           <h2>${item.folder}</h2>
           <ol>
             ${files.join('\n        ')}
           </ol>
-        </div>
-      `;
+        </div>`
+      );
     });
 
     const htmlcontent = (`<html>
