@@ -1,4 +1,5 @@
 const path = require('path');
+const util = require('util');
 const debug = require('debug')('prac-video-server:server.config');
 const DEFAULT_VIDEO_PATH = path.join(__dirname, 'testdata');
 const { PORT, HOMEPATH, VIDEO_STORAGE_DIR } = process.env;
@@ -21,6 +22,6 @@ const branchConf = {
 let config = IS_BRANCH ? branchConf : defaults;
 config = Object.assign(defaults, config);
 
-debug('server.config==%j', config);
+debug(`SERVERCONFIG==${util.inspect(config)}`);
 
 module.exports = config;

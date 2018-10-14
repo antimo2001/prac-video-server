@@ -13,6 +13,7 @@
     "clean": "del public\\*generated.html",
     "start-video-server": "./node_modules/.bin/video-server",
     "start": "node server.js",
+    "testconfig": "set DEBUG=prac-video-server:server.config && node server.js",
     "test": "set DEBUG=prac-video-server:* && node server.js"
   },
   "author": "",
