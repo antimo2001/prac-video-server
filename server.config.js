@@ -7,5 +7,5 @@ module.exports = {
   // storageDir: process.env.VIDEO_STORAGE_DIR || testdataDir,
   storageDir: testdataDir,
   rxFileFilter: (/\.(mp4|MTS|mpg)/i),
-  rxFolders: (/\b[3-9]|(B[LR]\d*)\b/i),
+  rxFolders: (/\b[2-9]|(B[LR]\d*)\b/i),
 }
