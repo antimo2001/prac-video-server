@@ -6,9 +6,10 @@ const { PORT, HOMEPATH, VIDEO_STORAGE_DIR } = process.env;
 const IS_BRANCH = (/branch/).test(HOMEPATH);
 
 const defaults = {
-  port: 4242,
+  port: PORT || 4242,
   sortFolders: 'asc',
   storageDir: DEFAULT_VIDEO_PATH,
+  indexfile: 'index-generated.html',
   rxFileFilter: (/\.(mp4|MTS|mpg)/i),
   rxFolders: (/\b[2-9]|(B[LR]\d*)\b/i),
 };

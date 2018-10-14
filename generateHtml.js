@@ -75,7 +75,10 @@ module.exports = () => {
       </body>
       </html>`
     );
-    fs.writeFileSync('public/index-generated.html', htmlcontent, 'utf8');
+
+    const indexfilepath = `public/${config.indexfile}`;
+
+    fs.writeFileSync(indexfilepath, htmlcontent, 'utf8');
     debug(`${htmlcontent}`);
   };
   
