@@ -31,12 +31,24 @@ module.exports = () => {
       return mappedFolder;
     });
   };
+  
+  /**
+   * this sorts the movie folders based on config.sortFolders flag
+   */
+  const sortFolders = (movieFolders) => {
+    if (config.sortFolders.startsWith('desc')) {
+      debug(`sort folders in descending order`);
+      return movieFolders.reverse();
+    } else {
+      return movieFolders;
+    }
+  }
 
   /**
    * this writes the HTML content for each folder of video files
    */
   const writeHtmlSync = () => {
-    const movieFolders = getFoldersSync().map(item => {
+    let movieFolders = getFoldersSync().map(item => {
       //Create html elements for each video file
       let files = item.files.map(file => {
         return `<li><a href="view/${item.folder}/${file}">${file}</a></li>`;
@@ -52,10 +64,13 @@ module.exports = () => {
       );
     });
 
+    movieFolders = sortFolders(movieFolders);
+    movieFolders = movieFolders.join('\n      ');
+
     const htmlcontent = (`<html>
       <body>
         <main>
-          ${movieFolders.join('\n      ')}
+          ${movieFolders}
         </main>
       </body>
       </html>`
