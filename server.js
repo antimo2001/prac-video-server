@@ -3,7 +3,7 @@ const debug = require('debug')('prac-video-server:server');
 const serveStatic = require('serve-static');
 const server = require('video-server');
 const config = require('./server.config');
-const generateHtml = require('./generateHtml');
+const { generateHtmlRequest, generateHtmlSync } = require('./generateHtml');
 
 /**
  * Set the port and storage directory from environment variables
@@ -16,7 +16,8 @@ debug(`STORAGE_DIR set to ${config.storageDir}`);
 /**
  * Setup the static-server
  */
-generateHtml(config.indexfile);
+// generateHtmlSync();
+server.use(generateHtmlRequest());
 server.use(serveStatic('public', {'index': [config.indexfile]}));
 // server.use(serveStatic(config.storageDir));
 
