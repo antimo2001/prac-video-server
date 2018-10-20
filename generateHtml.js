@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
-// const util = require('util');
+const util = require('util');
+const readdirPromise = util.promisify(fs.readdir);
+const writeFilePromise = util.promisify(fs.writeFile);
 const debug = require('debug')('prac-video-server:generateHtml');
 const config = require('./server.config');
 
@@ -8,16 +10,14 @@ const config = require('./server.config');
  * Module to generate the static index.html with filenames from the storage dir
  */
 module.exports = (function() {
-
   /**
    * this reads from config.storageDir and creates array of mappedFolders for
-   * easier processing in the writeHtml function
+   * easier processing later
    */
   const getFoldersSync = () => {
     return fs.readdirSync(config.storageDir).filter(folder => {
       //Filter by the specified folders
       let isincludedFolder = config.rxFolders.test(folder);
-      // debug('(folder,isincludedFolder)===', folder, isincludedFolder);
       debug({ folder, isincludedFolder });
       return isincludedFolder;
     }).map(folder => {
@@ -33,7 +33,22 @@ module.exports = (function() {
       return mappedFolder;
     });
   };
-  
+
+  const makeHtmlFolderSection = (item) => {
+    let files = item.files.map(file => {
+      return `<li><a href="view/${item.folder}/${file}">${file}</a></li>`;
+    });
+    //Create html for each section that contains video files
+    return (`
+      <div id=${item.folder}>
+      <h2>${item.folder}</h2>
+      <ol>
+        ${files.join('\n        ')}
+      </ol>
+      </div>`
+    );
+  }
+
   /**
    * this sorts the movie folders based on config.sortFolders flag
    */
@@ -50,22 +65,7 @@ module.exports = (function() {
    * this writes the HTML content for each folder of video files
    */
   const writeHtmlSync = () => {
-    let movieFolders = getFoldersSync().map(item => {
-      //Create html elements for each video file
-      let files = item.files.map(file => {
-        return `<li><a href="view/${item.folder}/${file}">${file}</a></li>`;
-      });
-      //Create html for each section that contains video files
-      return (`
-        <div id=${item.folder}>
-          <h2>${item.folder}</h2>
-          <ol>
-            ${files.join('\n        ')}
-          </ol>
-        </div>`
-      );
-    });
-
+    let movieFolders = getFoldersSync().map(makeHtmlFolderSection);
     movieFolders = sortFolders(movieFolders);
     movieFolders = movieFolders.join('\n      ');
 
@@ -95,51 +95,73 @@ module.exports = (function() {
   }
 
   /**
+   * this reads from config.storageDir and creates array of mappedFolders for
+   * easier processing later. note that this is async
+   */
+  const getFoldersAsync = () => {
+    return readdirPromise(config.storageDir).then(items => {
+      // let folderNames = [];
+      //Filter by the specified folders
+      let folderPromises = items.filter(folder => {
+        let isincludedFolder = config.rxFolders.test(folder);
+        debug({ folder, isincludedFolder });
+        return isincludedFolder;
+      }).map(folder => {
+        let path2folder = path.join(config.storageDir, folder);
+        return readdirPromise(path2folder).then(files => {
+          return { folder, files };
+        });
+      });
+      
+      let i = 0;
+      //Using array of promised folders, create the html for each folder
+      return Promise.all(folderPromises).then(items => {
+        //Filter each folder by only the specified file extensions
+        const folders = items.map(item => {
+          const {folder, files} = item;
+          let filterFiles = files.filter(file => {
+            let isIncluded = config.rxFileFilter.test(file);
+            debug({ msg: 'include this file?', file, isIncluded });
+            return isIncluded;
+          });
+          //Create object containing the folderName and its specific video files
+          const mappedFolder = { folder, files: filterFiles };
+          // debug({ mappedFolder });
+          return mappedFolder;
+        });
+
+        debug({ folders });
+        return folders;
+      }).catch(err => {
+        debug({ msg: '***Error during getFoldersAsync', err });
+        throw err;
+      });
+    });
+  };
+
+  /**
    * this creates a middleware function for use in the video server's middlewares
    */
   const generateHtmlRequest = () => {
-    //Cheating a bit here; invoke a sync function (TODO: refactor later so it is async)
-    //Read the folders with movies files
-    let movieFolders = getFoldersSync().map(item => {
-      //Create html elements for each video file
-      let files = item.files.map(file => {
-        return `<li><a href="view/${item.folder}/${file}">${file}</a></li>`;
-      });
-      //Create html for each section that contains video files
-      return (`
-        <div id=${item.folder}>
-          <h2>${item.folder}</h2>
-          <ol>
-            ${files.join('\n        ')}
-          </ol>
-        </div>`
-      );
-    });
+    const indexfilepath = `public/${config.indexfile}`;
+    debug({ indexfilepath });
 
-    movieFolders = sortFolders(movieFolders);
-    movieFolders = movieFolders.join('\n      ');
-
-    const htmlcontent = (`<html>
-      <body>
-        <main>
-          ${movieFolders}
-        </main>
-      </body>
-      </html>`
-    );
-    
     //Return a middleware function
     return function (req, res, next) {
-  
-      const indexfilepath = `public/${config.indexfile}`;
-      debug({ indexfilepath });
+      getFoldersAsync().then(folders => {
+        let movieFolders = folders.map(makeHtmlFolderSection);
+        movieFolders = sortFolders(movieFolders);
+        movieFolders = movieFolders.join('\n      ');
 
-      fs.writeFile(indexfilepath, htmlcontent, 'utf8', (err) => {
-        if (err) return next(err);
-
+        return (`
+          <html> <body> <main>
+            ${movieFolders}
+          </main> </body> </html>`
+        );
+      }).then(htmlcontent => {
         debug(`${htmlcontent}`);
-        return next();
-      });
+        return writeFilePromise(indexfilepath, htmlcontent, 'utf8').then(next);
+      }).catch(next);
     }
   }
 

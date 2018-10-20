@@ -11,13 +11,14 @@ const defaultConfig = {
   storageDir: DEFAULT_VIDEO_PATH,
   indexfile: 'index-generated.html',
   rxFileFilter: (/\.(mp4|MTS|mpg)/i),
-  rxFolders: (/\b[2-9]|(B[LR]\d*)\b/i),
+  rxFolders: (/\d+/),
 };
 
 const branchConfig = {
   port: 6996,
   sortFolders: 'desc',
-  storageDir: VIDEO_STORAGE_DIR
+  storageDir: VIDEO_STORAGE_DIR,
+  rxFolders: (/\b[2-9]|(B[LR]\d*)\b/i),
 };
 
 debug({ isBranch });
