@@ -100,7 +100,6 @@ module.exports = (function() {
    */
   const getFoldersAsync = () => {
     return readdirPromise(config.storageDir).then(items => {
-      // let folderNames = [];
       //Filter by the specified folders
       let folderPromises = items.filter(folder => {
         let isincludedFolder = config.rxFolders.test(folder);
@@ -113,7 +112,6 @@ module.exports = (function() {
         });
       });
       
-      let i = 0;
       //Using array of promised folders, create the html for each folder
       return Promise.all(folderPromises).then(items => {
         //Filter each folder by only the specified file extensions
@@ -153,15 +151,13 @@ module.exports = (function() {
         movieFolders = sortFolders(movieFolders);
         movieFolders = movieFolders.join('\n      ');
 
-        return (`
-          <html> <body> <main>
+        let htmlcontent = (`<html> <body> <main>
             ${movieFolders}
           </main> </body> </html>`
         );
-      }).then(htmlcontent => {
         debug(`${htmlcontent}`);
-        return writeFilePromise(indexfilepath, htmlcontent, 'utf8').then(next);
-      }).catch(next);
+        return writeFilePromise(indexfilepath, htmlcontent, 'utf8');
+      }).then(next).catch(next);
     }
   }
 
