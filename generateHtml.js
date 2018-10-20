@@ -1,6 +1,7 @@
-const debug = require('debug')('prac-video-server:generateHtml');
 const fs = require('fs');
 const path = require('path');
+// const util = require('util');
+const debug = require('debug')('prac-video-server:generateHtml');
 const config = require('./server.config');
 
 /**
@@ -16,7 +17,8 @@ module.exports = () => {
     return fs.readdirSync(config.storageDir).filter(folder => {
       //Filter by the specified folders
       let isincludedFolder = config.rxFolders.test(folder);
-      debug('(folder,isincludedFolder)===', folder, isincludedFolder);
+      // debug('(folder,isincludedFolder)===', folder, isincludedFolder);
+      debug({ folder, isincludedFolder });
       return isincludedFolder;
     }).map(folder => {
       //Filter each folder by only the specified file extensions
@@ -27,7 +29,7 @@ module.exports = () => {
       });
       //Create object containing the folderName and its specific video files
       let mappedFolder = { folder, files };
-      debug('mappedFolder===%j', mappedFolder);
+      debug({ mappedFolder });
       return mappedFolder;
     });
   };
@@ -37,7 +39,7 @@ module.exports = () => {
    */
   const sortFolders = (movieFolders) => {
     if (config.sortFolders.startsWith('desc')) {
-      debug(`sort folders in descending order`);
+      debug('sort folders in descending order: %s', config.sortFolders);
       return movieFolders.reverse();
     } else {
       return movieFolders;
@@ -77,6 +79,7 @@ module.exports = () => {
     );
 
     const indexfilepath = `public/${config.indexfile}`;
+    debug({ indexfilepath })
 
     fs.writeFileSync(indexfilepath, htmlcontent, 'utf8');
     debug(`${htmlcontent}`);

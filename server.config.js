@@ -3,9 +3,9 @@ const util = require('util');
 const debug = require('debug')('prac-video-server:server.config');
 const DEFAULT_VIDEO_PATH = path.join(__dirname, 'testdata');
 const { PORT, HOMEPATH, VIDEO_STORAGE_DIR } = process.env;
-const IS_BRANCH = (/branch/).test(HOMEPATH);
+const isBranch = (/branch/).test(HOMEPATH);
 
-const defaults = {
+const defaultConfig = {
   port: PORT || 4242,
   sortFolders: 'asc',
   storageDir: DEFAULT_VIDEO_PATH,
@@ -14,14 +14,16 @@ const defaults = {
   rxFolders: (/\b[2-9]|(B[LR]\d*)\b/i),
 };
 
-const branchConf = {
+const branchConfig = {
   port: 6996,
   sortFolders: 'desc',
   storageDir: VIDEO_STORAGE_DIR
 };
 
-let config = IS_BRANCH ? branchConf : defaults;
-config = Object.assign(defaults, config);
+debug({ isBranch });
+
+let config = isBranch ? branchConfig : defaultConfig;
+config = Object.assign(defaultConfig, config);
 
 debug(`SERVERCONFIG==${util.inspect(config)}`);
 
