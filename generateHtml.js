@@ -15,18 +15,15 @@ module.exports = (function() {
    * easier processing later
    */
   const getFoldersSync = () => {
+    //Filter by the specified folders
     return fs.readdirSync(config.storageDir).filter(folder => {
-      //Filter by the specified folders
       let isincludedFolder = config.rxFolders.test(folder);
       debug({ folder, isincludedFolder });
       return isincludedFolder;
     }).map(folder => {
       //Filter each folder by only the specified file extensions
       let path2folder = path.join(config.storageDir, folder);
-      let files = fs.readdirSync(path2folder).filter(file => {
-        let isincluded = config.rxFileFilter.test(file);
-        return isincluded;
-      });
+      let files = fs.readdirSync(path2folder).filter(config.rxFileFilter.test);
       //Create object containing the folderName and its specific video files
       let mappedFolder = { folder, files };
       debug({ mappedFolder });
@@ -34,18 +31,23 @@ module.exports = (function() {
     });
   };
 
+  /**
+   * Returns string of html for each folder of files
+   * @param {object} item
+   */
   const makeHtmlFolderSection = (item) => {
-    let files = item.files.map(file => {
-      return `<li><a href="view/${item.folder}/${file}">${file}</a></li>`;
+    let { folder, files } = item;
+    files = files.map(file => {
+      return `<li><a href="view/${folder}/${file}">${file}</a></li>`;
     });
     //Create html for each section that contains video files
     return (`
-      <div id=${item.folder}>
-      <h2>${item.folder}</h2>
+      <section id=${folder}>
+      <h2>${folder}</h2>
       <ol>
         ${files.join('\n        ')}
       </ol>
-      </div>`
+      </section>`
     );
   }
 
@@ -81,8 +83,9 @@ module.exports = (function() {
     const indexfilepath = `public/${config.indexfile}`;
     debug({ indexfilepath });
 
-    fs.writeFileSync(indexfilepath, htmlcontent, 'utf8');
     debug(`${htmlcontent}`);
+    fs.writeFileSync(indexfilepath, htmlcontent, 'utf8');
+    debug('Done generating %s', indexfilepath);
   };
 
   /**
@@ -91,7 +94,36 @@ module.exports = (function() {
    */
   const generateHtmlSync = () => {
     writeHtmlSync();
-    debug('Done generating index-generated.html');
+  }
+
+  const makeHtmlFolderWithFiles = (items) => {
+    //Create the promises to read the files in each folder
+    const folderPromises = items.map(item => {
+      return readdirPromise(item.path).then(files => {
+        return { folder: item.folder, files };
+      });
+    });
+    //Using array of promised folders, create the html for each folder
+    return Promise.all(folderPromises).then(data => {
+      //Filter each folder by only the specified file extensions
+      const folders = data.map(item => {
+        const { folder, files } = item;
+        let filteredFiles = files.filter(file => {
+          let isIncluded = config.rxFileFilter.test(file);
+          debug({ msg: 'include this file?', file, isIncluded });
+          return isIncluded;
+        });
+        //Create object containing the folderName and its specific video files
+        const mappedFolder = { folder, files: filteredFiles };
+        // debug({ mappedFolder });
+        return mappedFolder;
+      });
+      debug({ folders });
+      return folders;
+    }).catch(err => {
+      debug({ msg: '***Error during makeHtmlFolderWithFiles', err });
+      throw err;
+    });
   }
 
   /**
@@ -101,44 +133,24 @@ module.exports = (function() {
   const getFoldersAsync = () => {
     return readdirPromise(config.storageDir).then(items => {
       //Filter by the specified folders
-      let folderPromises = items.filter(folder => {
+      let folders = items.filter(folder => {
         let isincludedFolder = config.rxFolders.test(folder);
         debug({ folder, isincludedFolder });
         return isincludedFolder;
       }).map(folder => {
         let path2folder = path.join(config.storageDir, folder);
-        return readdirPromise(path2folder).then(files => {
-          return { folder, files };
-        });
+        return { folder, path: path2folder };
       });
-      
-      //Using array of promised folders, create the html for each folder
-      return Promise.all(folderPromises).then(items => {
-        //Filter each folder by only the specified file extensions
-        const folders = items.map(item => {
-          const {folder, files} = item;
-          let filterFiles = files.filter(file => {
-            let isIncluded = config.rxFileFilter.test(file);
-            debug({ msg: 'include this file?', file, isIncluded });
-            return isIncluded;
-          });
-          //Create object containing the folderName and its specific video files
-          const mappedFolder = { folder, files: filterFiles };
-          // debug({ mappedFolder });
-          return mappedFolder;
-        });
-
-        debug({ folders });
-        return folders;
-      }).catch(err => {
-        debug({ msg: '***Error during getFoldersAsync', err });
-        throw err;
-      });
+      //Create html for the files in each folder
+      return makeHtmlFolderWithFiles(folders);
+    }).catch(err => {
+      debug({ msg: '***Error during getFoldersAsync', err });
+      throw err;
     });
   };
 
   /**
-   * this creates a middleware function for use in the video server's middlewares
+   * this creates a middleware function for use in a video server's middlewares
    */
   const generateHtmlRequest = () => {
     const indexfilepath = `public/${config.indexfile}`;
@@ -157,7 +169,10 @@ module.exports = (function() {
         );
         debug(`${htmlcontent}`);
         return writeFilePromise(indexfilepath, htmlcontent, 'utf8');
-      }).then(next).catch(next);
+      }).then(() => {
+        console.log('Done generating %s', indexfilepath);
+        next();
+      }).catch(next);
     }
   }
 
