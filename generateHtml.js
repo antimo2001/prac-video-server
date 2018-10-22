@@ -10,6 +10,8 @@ const config = require('./server.config');
  * Module to generate the static index.html with filenames from the storage dir
  */
 module.exports = (function() {
+  const indexfilepath = `public/${config.indexfile}`;
+
   /**
    * this reads from config.storageDir and creates array of mappedFolders for
    * easier processing later
@@ -23,7 +25,9 @@ module.exports = (function() {
     }).map(folder => {
       //Filter each folder by only the specified file extensions
       let path2folder = path.join(config.storageDir, folder);
-      let files = fs.readdirSync(path2folder).filter(config.rxFileFilter.test);
+      let files = fs.readdirSync(path2folder).filter(f => {
+        return config.rxFileFilter.test(f)
+      });
       //Create object containing the folderName and its specific video files
       let mappedFolder = { folder, files };
       debug({ mappedFolder });
@@ -37,16 +41,14 @@ module.exports = (function() {
    */
   const makeHtmlFolderSection = (item) => {
     let { folder, files } = item;
-    files = files.map(file => {
-      return `<li><a href="view/${folder}/${file}">${file}</a></li>`;
-    });
+    files = files.map(f => `<li><a href="view/${folder}/${f}">${f}</a></li>`);
     //Create html for each section that contains video files
-    return (`
-      <section id=${folder}>
-      <h2>${folder}</h2>
-      <ol>
-        ${files.join('\n        ')}
-      </ol>
+    return (
+      `<section id=${folder}>
+        <h2>${folder}</h2>
+        <ol>
+          ${files.join('\n        ')}
+        </ol>
       </section>`
     );
   }
@@ -66,59 +68,43 @@ module.exports = (function() {
   /**
    * this writes the HTML content for each folder of video files
    */
-  const writeHtmlSync = () => {
+  const generateHtmlSync = () => {
     let movieFolders = getFoldersSync().map(makeHtmlFolderSection);
     movieFolders = sortFolders(movieFolders);
     movieFolders = movieFolders.join('\n      ');
-
-    const htmlcontent = (`<html>
-      <body>
-        <main>
-          ${movieFolders}
-        </main>
-      </body>
-      </html>`
+    const htmlcontent = (`<html> <body> <main>
+        ${movieFolders}\n</main> </body> </html>`
     );
-
-    const indexfilepath = `public/${config.indexfile}`;
-    debug({ indexfilepath });
-
     debug(`${htmlcontent}`);
+    debug({ indexfilepath });
     fs.writeFileSync(indexfilepath, htmlcontent, 'utf8');
     debug('Done generating %s', indexfilepath);
   };
 
   /**
-   * this wrapper function is the externally invoked function for this
-   * module's writeHtmlSync function
+   * Setup each folder's files to easily create html later
+   * @param {Array} items 
    */
-  const generateHtmlSync = () => {
-    writeHtmlSync();
-  }
-
-  const makeHtmlFolderWithFiles = (items) => {
+  const readEachFoldersFiles = (items) => {
     //Create the promises to read the files in each folder
-    const folderPromises = items.map(item => {
-      return readdirPromise(item.path).then(files => {
-        return { folder: item.folder, files };
+    const folderPromises = items.map(folder => {
+      const path2folder = path.join(config.storageDir, folder);
+      return readdirPromise(path2folder).then(files => {
+        return { folder, files };
       });
     });
-    //Using array of promised folders, create the html for each folder
+    //Using array of promised folders, setup the folders with files
     return Promise.all(folderPromises).then(data => {
       //Filter each folder by only the specified file extensions
       const folders = data.map(item => {
         const { folder, files } = item;
-        let filteredFiles = files.filter(file => {
-          let isIncluded = config.rxFileFilter.test(file);
-          debug({ msg: 'include this file?', file, isIncluded });
-          return isIncluded;
-        });
+        const vfiles = files.filter(f => config.rxFileFilter.test(f));
         //Create object containing the folderName and its specific video files
-        const mappedFolder = { folder, files: filteredFiles };
-        // debug({ mappedFolder });
+        let mappedFolder = { folder, files: vfiles };
+        debug({ mappedFolder });
         return mappedFolder;
       });
-      debug({ folders });
+      // debug({ folders });
       return folders;
     }).catch(err => {
       debug({ msg: '***Error during makeHtmlFolderWithFiles', err });
@@ -133,16 +119,9 @@ module.exports = (function() {
   const getFoldersAsync = () => {
     return readdirPromise(config.storageDir).then(items => {
       //Filter by the specified folders
-      let folders = items.filter(folder => {
-        let isincludedFolder = config.rxFolders.test(folder);
-        debug({ folder, isincludedFolder });
-        return isincludedFolder;
-      }).map(folder => {
-        let path2folder = path.join(config.storageDir, folder);
-        return { folder, path: path2folder };
-      });
-      //Create html for the files in each folder
-      return makeHtmlFolderWithFiles(folders);
+      let folders = items.filter(f => config.rxFolders.test(f));
+      //Read the files in each folder
+      return readEachFoldersFiles(folders);
     }).catch(err => {
       debug({ msg: '***Error during getFoldersAsync', err });
       throw err;
@@ -153,10 +132,6 @@ module.exports = (function() {
    * this creates a middleware function for use in a video server's middlewares
    */
   const generateHtmlRequest = () => {
-    const indexfilepath = `public/${config.indexfile}`;
-    debug({ indexfilepath });
-
-    //Return a middleware function
     return function (req, res, next) {
       getFoldersAsync().then(folders => {
         let movieFolders = folders.map(makeHtmlFolderSection);
@@ -164,10 +139,10 @@ module.exports = (function() {
         movieFolders = movieFolders.join('\n      ');
 
         let htmlcontent = (`<html> <body> <main>
-            ${movieFolders}
-          </main> </body> </html>`
+            ${movieFolders}\n</main> </body> </html>`
         );
         debug(`${htmlcontent}`);
+        debug({ indexfilepath });
         return writeFilePromise(indexfilepath, htmlcontent, 'utf8');
       }).then(() => {
         console.log('Done generating %s', indexfilepath);
