@@ -3,7 +3,7 @@ const debug = require('debug')('prac-video-server:server');
 const serveStatic = require('serve-static');
 const server = require('video-server');
 const config = require('./server.config');
-const { generateHtmlRequest, generateHtmlSync } = require('./generateHtml');
+const { generateHtmlRequest, generateHtmlSync } = require('./generateHtml/main');
 
 /**
  * Set the port and storage directory from environment variables
