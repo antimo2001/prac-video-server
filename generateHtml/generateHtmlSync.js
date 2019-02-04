@@ -6,10 +6,6 @@ const config = require('../server.config');
 const makeHtmlFolderSection = require('../generateHtml/makeHtmlFolderSection');
 const sortFolders = require('../generateHtml/sortFolders');
 
-/**
- * Module to generate the static index.html with filenames from the storage dir
- */
-
 const indexfilepath = `public/${config.indexfile}`;
 
 /**
@@ -53,5 +49,9 @@ const generateHtmlSync = () => {
   fs.writeFileSync(indexfilepath, htmlcontent, 'utf8');
   debug('Done generating %s', indexfilepath);
 };
+
+/**
+ * Module to generate the static index.html with filenames from the storage dir
+ */
 
 module.exports = generateHtmlSync;

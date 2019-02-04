@@ -10,11 +10,6 @@ const sortFolders = require('../generateHtml/sortFolders');
 const indexfilepath = `public/${config.indexfile}`;
 
 /**
- * Module to generate the static index.html with filenames from the storage dir
- * This is async and is meant to be used as middleware
- */
-
-/**
  * Setup each folder's files to easily create html later
  * @param {Array} items 
  */
@@ -84,4 +79,8 @@ const generateHtmlRequest = () => {
   }
 }
 
+/**
+ * Module to generate the static index.html with filenames from the storage dir
+ * This is async and is meant to be used as middleware
+ */
 module.exports = generateHtmlRequest;
