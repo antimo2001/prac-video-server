@@ -18,7 +18,7 @@ const branchConfig = {
   port: 6996,
   sortFolders: 'desc',
   storageDir: VIDEO_STORAGE_DIR,
-  rxFolders: (/\b[1-9]|(B[LR][\d\w_-]*)\b/i),
+  rxFolders: (/\b[1-9]|((B[LR]|Cuts)[\d\w_-]*)\b/i),
 };
 
 debug({ isBranch });
