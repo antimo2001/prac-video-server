@@ -16,8 +16,8 @@ debug(`STORAGE_DIR set to ${config.storageDir}`);
 /**
  * Setup the static-server
  */
-// generateHtmlSync();
-server.use(generateHtmlRequest());
+generateHtmlSync();
+// server.use(generateHtmlRequest());
 server.use(serveStatic('public', {'index': [config.indexfile]}));
 // server.use(serveStatic(config.storageDir));
 
